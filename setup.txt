@@ -1,0 +1,12 @@
+start spark session by setting up the driver
+
+docker exec -it spark-worker-1 /opt/spark/bin/pyspark --master spark://spark-master:7077
+
+data = [(1, "Bogdan", "2026-11-10"), (2, "Vlad", "2026-06-09"), (3, "Andrei", "2025-12-22")]
+--create data frame
+    df_source = spark.createDataFrame(data, ["id", "name", "date"])
+--write - job created - create cvs file - task splitted across executors - so 4 csv created in this case
+    df_source.write.mode("overwrite").option("header","true").csv("/opt/spark-data/users_csv")
+
+--read csv - read header as header, use default infraSchema 
+df = spark.read.format("csv").option("header", "true").option("infraSchema", "true").load("/opt/spark-data/users_csv")
