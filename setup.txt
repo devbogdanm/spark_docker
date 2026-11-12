@@ -43,5 +43,30 @@ df_explicit = spark.read.option("header", "true").schema(schema).csv("/opt/spark
 df_explicit.printSchema()
 df_explicit.show()
 
+ --StructType vs DDL
+data = [("1","Bogdan",("RO","Bucharest")),("2","Andi",("US","NewYork"))]
+df_raw.write.mode("overwrite").json("/opt/spark-data/nested_users")
+df_raw = spark.createDataFrame(data, ["id","name","location"])
+from pyspark.sql.types import (StructType, StructField, IntegerType, StringType)
+//struct_schema = StructType([StructField("id", IntegerType(), True),StructField("name", StringType(), True), StructField("location", StringType([StructField("country", StringType(), True), StructField("city", StringType(), True)]), True)])
 
- 
+struct_schema = StructType([
+    StructField("id", IntegerType(), True),
+    StructField("name", StringType(), True),
+    StructField("location", StructType([
+        StructField("country", StringType(), True),
+        StructField("city", StringType(), True),
+    ]), True),
+])
+
+--the data above generates NULL location because the row is interpreted as array
+ df_struct = spark.read.schema(struct_schema).json("/opt/spark-data/nested_users")
+ df_struct.printSchema()
+
+from pyspark.sql import Row
+data = [("1","Bogdan",Row(country = "RO", city = "Bucharest")),("2","Andi",Row(country = "US", city ="NewYork"))]
+df_struct.show()
+
+ddl_schema = """ id INT, name STRING, location STRUCT<country: STRING, city:STRING> """
+df_ddl = spark.read.schema(ddl_schema).json("/opt/spark-data/nested_users")
+df_ddl.printSchema()
